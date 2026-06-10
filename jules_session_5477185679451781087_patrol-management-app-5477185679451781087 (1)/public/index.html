@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patrol Management</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Patrol Management</h1>
+
+        <section id="alerts">
+            <h2>Alerts (Unresolved Issues)</h2>
+            <ul id="alert-list"></ul>
+        </section>
+
+        <section id="register-patrol">
+            <h2>Register New Patrol</h2>
+            <form id="patrol-form">
+                <input type="text" id="patrol-name" placeholder="Patrol Name" required>
+                <input type="date" id="patrol-date" required>
+                <button type="submit">Register</button>
+            </form>
+        </section>
+
+        <section id="patrol-list-section">
+            <h2>Patrols</h2>
+            <ul id="patrol-list"></ul>
+        </section>
+
+        <section id="issue-section" style="display:none;">
+            <h2 id="current-patrol-title">Issues for Patrol</h2>
+            <form id="issue-form">
+                <input type="text" id="issue-description" placeholder="Issue Description" required>
+                <input type="text" id="issue-pic" placeholder="Person in Charge" required>
+                <button type="submit">Add Issue</button>
+            </form>
+            <ul id="issue-list"></ul>
+        </section>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
