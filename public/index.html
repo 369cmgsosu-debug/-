@@ -1,47 +1,43 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>パトロール管理</title>
-</head>
-<body>
+<script>
+async function addData() {
+  const data = {
+    date: document.querySelector('[name="date"]').value,
+    person: document.querySelector('[name="person"]').value,
+    place: document.querySelector('[name="place"]').value,
+    status: document.querySelector('[name="status"]').value,
+    comment: document.querySelector('[name="comment"]').value
+  };
 
-  <h1>パトロール管理</h1>
+  await fetch("/add", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
 
-  <h2>記録登録</h2>
-  <form method="POST" action="/add">
+  loadList();
+}
 
-    <div>
-      <label>日付：</label>
-      <input type="date" name="date">
-    </div>
+async function loadList() {
+  const res = await fetch("/list");
+  const list = await res.json();
 
-    <div>
-      <label>記入者：</label>
-      <input name="person">
-    </div>
+  const area = document.getElementById("list");
+  area.innerHTML = "";
 
-    <div>
-      <label>場所：</label>
-      <input name="place">
-    </div>
+  list.forEach(item => {
+    const div = document.createElement("div");
 
-    <div>
-      <label>状態：</label>
-      <select name="status">
-        <option value="○">○</option>
-        <option value="△">△</option>
-        <option value="×">×</option>
-      </select>
-    </div>
+    div.innerHTML = `
+      <p>${item.date} / ${item.person}</p>
+      <p>${item.place} / ${item.status}</p>
+      <p>${item.comment}</p>
+    `;
 
-    <div>
-      <label>コメント：</label>
-      <input name="comment">
-    </div>
+    area.appendChild(div);
+  });
+}
 
-    <button>登録</button>
-  </form>
-
-</body>
-</html>
+window.onload = loadList;
+</script>
