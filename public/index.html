@@ -3,31 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <title>パトロール管理</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f5f6fa;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 8px 12px;
+      margin-top: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .btn-main {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .btn-sub {
+      background: #3498db;
+      color: white;
+    }
+
+    .btn-done {
+      background: #555;
+      color: white;
+    }
+
+    .done {
+      background: #ddd;
+    }
+
+    .status-ok { color: green; }
+    .status-mid { color: orange; }
+    .status-ng { color: red; }
+  </style>
 </head>
+
 <body>
+
+<div class="container">
 
 <h1>パトロール管理</h1>
 
+<div class="card">
 <h2>記録登録</h2>
-<form onsubmit="event.preventDefault(); addData();">
 
-  <input type="date" name="date"><br>
-  <input name="person" placeholder="記入者"><br>
-  <input name="place" placeholder="場所"><br>
+<form onsubmit="event.preventDefault(); addData();">
+  <input type="date" name="date">
+  <input name="person" placeholder="記入者">
+  <input name="place" placeholder="場所">
 
   <select name="status">
     <option value="○">○</option>
     <option value="△">△</option>
     <option value="×">×</option>
-  </select><br>
+  </select>
 
-  <input name="comment" placeholder="コメント"><br>
+  <input name="comment" placeholder="コメント">
 
-  <button>登録</button>
+  <button class="btn-main">登録</button>
 </form>
+</div>
 
 <h2>一覧</h2>
 <div id="list"></div>
+
+</div>
 
 <script>
 async function addData() {
@@ -41,10 +113,31 @@ async function addData() {
 
   await fetch("/add", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: {"Content-Type": "application/json"},
     body: JSON.stringify(data)
+  });
+
+  loadList();
+}
+
+async function assign(index) {
+  const name = prompt("担当者名");
+  if (!name) return;
+
+  await fetch("/assign", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ index, assignee: name })
+  });
+
+  loadList();
+}
+
+async function done(index) {
+  await fetch("/done", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ index })
   });
 
   loadList();
@@ -57,20 +150,24 @@ async function loadList() {
   const area = document.getElementById("list");
   area.innerHTML = "";
 
-  list.forEach(item => {
-    const div = document.createElement("div");
+  list.forEach((item, index) => {
 
-    let color = "black";
-    if (item.status === "○") color = "green";
-    if (item.status === "△") color = "orange";
-    if (item.status === "×") color = "red";
+    let statusClass = "";
+    if (item.status === "○") statusClass = "status-ok";
+    if (item.status === "△") statusClass = "status-mid";
+    if (item.status === "×") statusClass = "status-ng";
+
+    const div = document.createElement("div");
+    div.className = "card " + (item.done ? "done" : "");
 
     div.innerHTML = `
-      <div style="border:1px solid #ccc; margin:10px; padding:10px;">
-        <p>${item.date} / ${item.person}</p>
-        <p>${item.place} / <span style="color:${color}">${item.status}</span></p>
-        <p>${item.comment}</p>
-      </div>
+      <p><b>${item.date}</b> / ${item.person}</p>
+      <p>${item.place} / <span class="${statusClass}">${item.status}</span></p>
+      <p>${item.comment}</p>
+      <p>担当者: ${item.assignee || "未設定"}</p>
+
+      <button class="btn-sub" onclick="assign(${index})">担当者</button>
+      <button class="btn-done" onclick="done(${index})">対応済み</button>
     `;
 
     area.appendChild(div);
