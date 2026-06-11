@@ -1,3 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>パトロール管理</title>
+</head>
+<body>
+
+<h1>パトロール管理</h1>
+
+<h2>記録登録</h2>
+<form onsubmit="event.preventDefault(); addData();">
+
+  <input type="date" name="date"><br>
+  <input name="person" placeholder="記入者"><br>
+  <input name="place" placeholder="場所"><br>
+
+  <select name="status">
+    <option value="○">○</option>
+    <option value="△">△</option>
+    <option value="×">×</option>
+  </select><br>
+
+  <input name="comment" placeholder="コメント"><br>
+
+  <button>登録</button>
+</form>
+
+<h2>一覧</h2>
+<div id="list"></div>
+
 <script>
 async function addData() {
   const data = {
@@ -29,10 +60,17 @@ async function loadList() {
   list.forEach(item => {
     const div = document.createElement("div");
 
+    let color = "black";
+    if (item.status === "○") color = "green";
+    if (item.status === "△") color = "orange";
+    if (item.status === "×") color = "red";
+
     div.innerHTML = `
-      <p>${item.date} / ${item.person}</p>
-      <p>${item.place} / ${item.status}</p>
-      <p>${item.comment}</p>
+      <div style="border:1px solid #ccc; margin:10px; padding:10px;">
+        <p>${item.date} / ${item.person}</p>
+        <p>${item.place} / <span style="color:${color}">${item.status}</span></p>
+        <p>${item.comment}</p>
+      </div>
     `;
 
     area.appendChild(div);
@@ -41,3 +79,6 @@ async function loadList() {
 
 window.onload = loadList;
 </script>
+
+</body>
+</html>
