@@ -17,5 +17,27 @@ app.get("/list", (req, res) => {
   res.json(list);
 });
 
+// 担当者設定
+app.post("/assign", (req, res) => {
+  const { index, assignee } = req.body;
+  if (list[index]) {
+    list[index].assignee = assignee;
+    res.send({ ok: true });
+  } else {
+    res.status(404).send({ ok: false, error: "Not found" });
+  }
+});
+
+// 対応済み設定
+app.post("/done", (req, res) => {
+  const { index } = req.body;
+  if (list[index]) {
+    list[index].done = true;
+    res.send({ ok: true });
+  } else {
+    res.status(404).send({ ok: false, error: "Not found" });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("start"));
