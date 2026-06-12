@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>フィールドタスク管理</title>
+  <title>日々パトロール記録管理</title>
   <style>
     :root {
       --not-started: #ff7675;
@@ -134,7 +134,6 @@
       border-bottom: 2px solid #ddd;
       display: flex;
       justify-content: space-between;
-      cursor: pointer;
     }
 
     .date-group {
@@ -164,7 +163,12 @@
 
     .task-card.status-not-started { border-left-color: var(--not-started); }
     .task-card.status-in-progress { border-left-color: var(--in-progress); }
-    .task-card.status-completed { border-left-color: var(--completed); }
+    .task-card.status-completed {
+      border-left-color: var(--completed);
+      opacity: 0.8;
+      transform: scale(0.95);
+      margin-left: 5%;
+    }
 
     .task-comment {
       font-weight: bold;
@@ -233,7 +237,7 @@
 <body>
 
 <div class="header">
-  <h1>フィールドタスク管理</h1>
+  <h1>日々パトロール記録管理</h1>
 </div>
 
 <div class="container">
@@ -250,7 +254,15 @@
         </div>
         <div class="form-group">
           <label>場所</label>
-          <input type="text" name="location" placeholder="現場・場所" required>
+          <select name="location" required>
+            <option value="" disabled selected>選択してください</option>
+            <option value="作業場">作業場</option>
+            <option value="圧縮試験室">圧縮試験室</option>
+            <option value="養生室">養生室</option>
+            <option value="篩い分け室">篩い分け室</option>
+            <option value="密度試験室">密度試験室</option>
+            <option value="外">外</option>
+          </select>
         </div>
         <div class="form-group">
           <label>ステータス</label>
@@ -283,17 +295,6 @@
     <button class="filter-btn" onclick="setFilter('overdue', this)">期限切れ</button>
   </div>
 
-  <div class="form-card" id="dashboardSection">
-    <h2>月間サマリー</h2>
-    <div class="form-group" style="max-width: 200px; margin-bottom: 1rem;">
-      <label>対象月選択</label>
-      <input type="month" id="summaryMonth" onchange="renderDashboard()">
-    </div>
-    <div id="dashboardContent">
-      <p style="color: #636e72;">月を選択するとサマリーが表示されます</p>
-    </div>
-  </div>
-
   <div class="board">
     <div class="column" id="col-not-started">
       <div class="column-header"><span>未着手</span> <span class="count">0</span></div>
@@ -304,8 +305,19 @@
       <div class="task-list"></div>
     </div>
     <div class="column" id="col-completed">
-      <div class="column-header" onclick="toggleCompleted()"><span>完了 (クリックで開閉)</span> <span class="count">0</span></div>
+      <div class="column-header"><span>完了済みタスク</span> <span class="count">0</span></div>
       <div class="task-list" id="completedList"></div>
+    </div>
+  </div>
+
+  <div class="form-card" id="dashboardSection">
+    <h2>月間サマリー</h2>
+    <div class="form-group" style="max-width: 200px; margin-bottom: 1rem;">
+      <label>対象月選択</label>
+      <input type="month" id="summaryMonth" onchange="renderDashboard()">
+    </div>
+    <div id="dashboardContent">
+      <p style="color: #636e72;">月を選択するとサマリーが表示されます</p>
     </div>
   </div>
 </div>
@@ -346,10 +358,6 @@
     renderDashboard();
   }
 
-  function toggleCompleted() {
-    const list = document.getElementById('completedList');
-    list.style.display = (list.style.display === 'none') ? 'block' : 'none';
-  }
 
   function setFilter(filter, el) {
     currentFilter = filter;
@@ -416,9 +424,6 @@
           const isOverdue = task.status !== 'Completed' && task.dueDate < today;
           const card = document.createElement('div');
           card.className = `task-card status-${task.status.toLowerCase().replace(' ', '-') } ${isOverdue ? 'overdue' : ''}`;
-          card.onclick = (e) => {
-            if (e.target.tagName !== 'BUTTON') cycleStatus(task.originalIndex, task.status);
-          };
 
           const delBtn = document.createElement('button');
           delBtn.className = 'delete-btn';
@@ -450,10 +455,24 @@
           metaDiv.appendChild(assigneeSpan);
           metaDiv.appendChild(dueSpan);
 
+          const actionDiv = document.createElement('div');
+          actionDiv.style.marginTop = '0.5rem';
+          actionDiv.style.textAlign = 'right';
+          const cycleBtn = document.createElement('button');
+          cycleBtn.className = 'btn';
+          cycleBtn.style.padding = '4px 8px';
+          cycleBtn.style.fontSize = '0.8rem';
+          cycleBtn.style.backgroundColor = '#636e72';
+          cycleBtn.style.color = 'white';
+          cycleBtn.textContent = '状態変更';
+          cycleBtn.onclick = () => cycleStatus(task.originalIndex, task.status);
+          actionDiv.appendChild(cycleBtn);
+
           card.appendChild(delBtn);
           card.appendChild(commentP);
           card.appendChild(infoP);
           card.appendChild(metaDiv);
+          card.appendChild(actionDiv);
 
           dateGroup.appendChild(card);
         });
