@@ -6,9 +6,26 @@ app.use(express.static("public"));
 
 let list = [];
 
-// 追加
+// タスク追加
 app.post("/add", (req, res) => {
-  list.push(req.body);
+  const { date, reporter, location, status, comment, assignee, dueDate } = req.body;
+
+  if (!assignee) {
+    return res.status(400).send({ ok: false, error: "Assignee is required" });
+  }
+
+  const task = {
+    date,
+    reporter,
+    location,
+    status: status || "Not Started",
+    comment,
+    assignee,
+    dueDate,
+    createdAt: new Date()
+  };
+
+  list.push(task);
   res.send({ ok: true });
 });
 
@@ -17,22 +34,23 @@ app.get("/list", (req, res) => {
   res.json(list);
 });
 
-// 担当者設定
-app.post("/assign", (req, res) => {
-  const { index, assignee } = req.body;
+
+// タスク削除
+app.post("/delete", (req, res) => {
+  const { index } = req.body;
   if (list[index]) {
-    list[index].assignee = assignee;
+    list.splice(index, 1);
     res.send({ ok: true });
   } else {
     res.status(404).send({ ok: false, error: "Not found" });
   }
 });
 
-// 対応済み設定
-app.post("/done", (req, res) => {
-  const { index } = req.body;
+// タスク更新
+app.post("/update", (req, res) => {
+  const { index, task } = req.body;
   if (list[index]) {
-    list[index].done = true;
+    list[index] = { ...list[index], ...task };
     res.send({ ok: true });
   } else {
     res.status(404).send({ ok: false, error: "Not found" });
