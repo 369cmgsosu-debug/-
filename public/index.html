@@ -232,6 +232,20 @@
         margin-bottom: 1rem;
       }
     }
+
+    @media print {
+      .header, .form-card:not(#dashboardSection), .filters, .btn, .delete-btn, .actionDiv {
+        display: none !important;
+      }
+      body { background: white; }
+      .container { max-width: 100%; padding: 0; }
+      .form-card#dashboardSection { box-shadow: none; border: 1px solid #ccc; margin-top: 20px; }
+      .board { display: block; }
+      .column { background: none; padding: 0; min-height: auto; }
+      .column-header { border-bottom: 1px solid black; margin-top: 20px; }
+      .task-card { border: 1px solid #ccc; break-inside: avoid; }
+      .task-card.status-completed { opacity: 1; transform: none; margin-left: 0; }
+    }
   </style>
 </head>
 <body>
@@ -289,10 +303,13 @@
     </form>
   </div>
 
-  <div class="filters">
-    <button class="filter-btn active" onclick="setFilter('all', this)">すべて</button>
-    <button class="filter-btn" onclick="setFilter('incomplete', this)">未完了</button>
-    <button class="filter-btn" onclick="setFilter('overdue', this)">期限切れ</button>
+  <div class="filters" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <button class="filter-btn active" onclick="setFilter('all', this)">すべて</button>
+      <button class="filter-btn" onclick="setFilter('incomplete', this)">未完了</button>
+      <button class="filter-btn" onclick="setFilter('overdue', this)">期限切れ</button>
+    </div>
+    <button class="btn" style="background-color: #2d3436; color: white;" onclick="window.print()">印刷</button>
   </div>
 
   <div class="board">
@@ -456,6 +473,7 @@
           metaDiv.appendChild(dueSpan);
 
           const actionDiv = document.createElement('div');
+          actionDiv.className = 'actionDiv';
           actionDiv.style.marginTop = '0.5rem';
           actionDiv.style.textAlign = 'right';
           const cycleBtn = document.createElement('button');
@@ -504,6 +522,12 @@
     loadTasks();
   }
 
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
   function renderDashboard() {
     const month = document.getElementById('summaryMonth').value;
     const container = document.getElementById('dashboardContent');
@@ -512,31 +536,59 @@
     const filtered = allTasks.filter(t => t.date.startsWith(month));
 
     if (filtered.length === 0) {
-      container.innerHTML = `<p style="color: #636e72;">${month}のデータはありません</p>`;
+      container.innerHTML = `<p style="color: #636e72;">${escapeHtml(month)}のデータはありません</p>`;
       return;
     }
 
-    const summary = {}; // { location: { status: count } }
+    const locSummary = {};
+    const repSummary = {};
+
     filtered.forEach(t => {
-      if (!summary[t.location]) {
-        summary[t.location] = { 'Not Started': 0, 'In Progress': 0, 'Completed': 0 };
+      if (!locSummary[t.location]) {
+        locSummary[t.location] = { 'Not Started': 0, 'In Progress': 0, 'Completed': 0 };
       }
-      summary[t.location][t.status]++;
+      locSummary[t.location][t.status]++;
+
+      if (!repSummary[t.reporter]) {
+        repSummary[t.reporter] = { 'Not Started': 0, 'In Progress': 0, 'Completed': 0, 'Total': 0 };
+      }
+      repSummary[t.reporter][t.status]++;
+      repSummary[t.reporter]['Total']++;
     });
 
-    let html = '<table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">';
+    let html = '<h3>A. 場所別サマリー</h3>';
+    html += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">';
     html += '<tr style="background: #f8f9fa;"><th style="text-align: left; padding: 8px; border: 1px solid #ddd;">場所</th><th style="padding: 8px; border: 1px solid #ddd;">未着手</th><th style="padding: 8px; border: 1px solid #ddd;">進行中</th><th style="padding: 8px; border: 1px solid #ddd;">完了</th></tr>';
 
-    Object.keys(summary).sort().forEach(loc => {
-      const s = summary[loc];
+    Object.keys(locSummary).sort().forEach(loc => {
+      const s = locSummary[loc];
       html += `<tr>
-        <td style="padding: 8px; border: 1px solid #ddd;">${loc}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(loc)}</td>
         <td style="text-align: center; padding: 8px; border: 1px solid #ddd;">${s['Not Started']}</td>
         <td style="text-align: center; padding: 8px; border: 1px solid #ddd;">${s['In Progress']}</td>
         <td style="text-align: center; padding: 8px; border: 1px solid #ddd;">${s['Completed']}</td>
       </tr>`;
     });
     html += '</table>';
+
+    html += '<h3>B. 記入者別サマリー & パトロール評価</h3>';
+    html += '<table style="width: 100%; border-collapse: collapse;">';
+    html += '<tr style="background: #f8f9fa;"><th style="text-align: left; padding: 8px; border: 1px solid #ddd;">記入者</th><th style="padding: 8px; border: 1px solid #ddd;">指摘数</th><th style="padding: 8px; border: 1px solid #ddd;">完了</th><th style="padding: 8px; border: 1px solid #ddd;">未完了</th><th style="padding: 8px; border: 1px solid #ddd;">完了率</th></tr>';
+
+    Object.keys(repSummary).sort().forEach(rep => {
+      const s = repSummary[rep];
+      const incomplete = s['Not Started'] + s['In Progress'];
+      const rate = ((s['Completed'] / s['Total']) * 100).toFixed(1);
+      html += `<tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(rep)}</td>
+        <td style="text-align: center; padding: 8px; border: 1px solid #ddd;">${s['Total']}</td>
+        <td style="text-align: center; padding: 8px; border: 1px solid #ddd;">${s['Completed']}</td>
+        <td style="text-align: center; padding: 8px; border: 1px solid #ddd;">${incomplete}</td>
+        <td style="text-align: center; padding: 8px; border: 1px solid #ddd;">${rate}%</td>
+      </tr>`;
+    });
+    html += '</table>';
+
     container.innerHTML = html;
   }
 </script>
