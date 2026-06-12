@@ -1,180 +1,453 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>パトロール管理</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>フィールドタスク管理</title>
   <style>
-    body {
-      font-family: Arial;
-      background: #f5f6fa;
-      margin: 0;
-      padding: 20px;
+    :root {
+      --not-started: #ff7675;
+      --in-progress: #fdcb6e;
+      --completed: #55efc4;
+      --bg-color: #f0f2f5;
+      --card-bg: #ffffff;
+      --text-color: #2d3436;
     }
 
-    h1 {
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+    }
+
+    .header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 1rem;
       text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
     .container {
-      max-width: 800px;
-      margin: auto;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
     }
 
-    .card {
-      background: white;
-      padding: 15px;
-      margin: 10px 0;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    .form-card {
+      background: var(--card-bg);
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
     }
 
-    input, select {
-      width: 100%;
-      padding: 8px;
-      margin: 5px 0;
-      border-radius: 5px;
-      border: 1px solid #ccc;
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
     }
 
-    button {
-      padding: 8px 12px;
-      margin-top: 5px;
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-bottom: 0.3rem;
+    }
+
+    input, select, textarea {
+      padding: 0.6rem;
+      border: 1px solid #dfe6e9;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .btn {
+      padding: 0.8rem 1.5rem;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
+      font-weight: bold;
+      transition: opacity 0.2s;
     }
 
-    .btn-main {
-      background: #4CAF50;
+    .btn:active {
+      opacity: 0.7;
+    }
+
+    .btn-submit {
+      background-color: #0984e3;
       color: white;
+      margin-top: 1rem;
+      width: 100%;
     }
 
-    .btn-sub {
-      background: #3498db;
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .filter-btn {
+      background: white;
+      border: 1px solid #dfe6e9;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      white-space: nowrap;
+      font-size: 0.9rem;
+    }
+
+    .filter-btn.active {
+      background: #0984e3;
       color: white;
+      border-color: #0984e3;
     }
 
-    .btn-done {
-      background: #555;
-      color: white;
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      align-items: start;
     }
 
-    .done {
-      background: #ddd;
+    .column {
+      background: #ebedef;
+      border-radius: 12px;
+      padding: 1rem;
+      min-height: 500px;
     }
 
-    .status-ok { color: green; }
-    .status-mid { color: orange; }
-    .status-ng { color: red; }
+    .column-header {
+      font-weight: bold;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .date-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .date-header {
+      font-size: 0.85rem;
+      color: #636e72;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+      text-align: center;
+      background: #dfe6e9;
+      padding: 2px 0;
+      border-radius: 4px;
+    }
+
+    .task-card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.8rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border-left: 5px solid #ccc;
+      position: relative;
+    }
+
+    .task-card.status-not-started { border-left-color: var(--not-started); }
+    .task-card.status-in-progress { border-left-color: var(--in-progress); }
+    .task-card.status-completed { border-left-color: var(--completed); }
+
+    .task-comment {
+      font-weight: bold;
+      margin: 0 0 0.5rem 0;
+      font-size: 1.1rem;
+    }
+
+    .task-info {
+      font-size: 0.9rem;
+      margin: 0.2rem 0;
+      color: #636e72;
+    }
+
+    .task-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.8rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid #f1f2f6;
+    }
+
+    .task-assignee {
+      font-size: 0.85rem;
+      background: #f1f2f6;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .task-due {
+      font-size: 0.8rem;
+      color: #d63031;
+    }
+
+    .overdue .task-due {
+      font-weight: bold;
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: none;
+      border: none;
+      color: #b2bec3;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+
+    @media (max-width: 768px) {
+      .board {
+        grid-template-columns: 1fr;
+      }
+      .column {
+        min-height: auto;
+        margin-bottom: 1rem;
+      }
+    }
   </style>
 </head>
-
 <body>
 
-<div class="container">
-
-<h1>パトロール管理</h1>
-
-<div class="card">
-<h2>記録登録</h2>
-
-<form onsubmit="event.preventDefault(); addData();">
-  <input type="date" name="date">
-  <input name="person" placeholder="記入者">
-  <input name="place" placeholder="場所">
-
-  <select name="status">
-    <option value="○">○</option>
-    <option value="△">△</option>
-    <option value="×">×</option>
-  </select>
-
-  <input name="comment" placeholder="コメント">
-
-  <button class="btn-main">登録</button>
-</form>
+<div class="header">
+  <h1>フィールドタスク管理</h1>
 </div>
 
-<h2>一覧</h2>
-<div id="list"></div>
+<div class="container">
+  <div class="form-card">
+    <form id="taskForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>報告日</label>
+          <input type="date" name="date" id="formDate" required>
+        </div>
+        <div class="form-group">
+          <label>報告者</label>
+          <input type="text" name="reporter" placeholder="氏名" required>
+        </div>
+        <div class="form-group">
+          <label>場所</label>
+          <input type="text" name="location" placeholder="現場・場所" required>
+        </div>
+        <div class="form-group">
+          <label>ステータス</label>
+          <select name="status">
+            <option value="Not Started">未着手</option>
+            <option value="In Progress">進行中</option>
+            <option value="Completed">完了</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>担当者 (必須)</label>
+          <input type="text" name="assignee" placeholder="担当者名" required>
+        </div>
+        <div class="form-group">
+          <label>期限</label>
+          <input type="date" name="dueDate" required>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top: 1rem;">
+        <label>コメント (タスク内容)</label>
+        <textarea name="comment" rows="2" placeholder="内容を入力してください" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-submit">タスク登録</button>
+    </form>
+  </div>
 
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">すべて</button>
+    <button class="filter-btn" onclick="setFilter('incomplete', this)">未完了</button>
+    <button class="filter-btn" onclick="setFilter('overdue', this)">期限切れ</button>
+  </div>
+
+  <div class="board">
+    <div class="column" id="col-not-started">
+      <div class="column-header"><span>未着手</span> <span class="count">0</span></div>
+      <div class="task-list"></div>
+    </div>
+    <div class="column" id="col-in-progress">
+      <div class="column-header"><span>進行中</span> <span class="count">0</span></div>
+      <div class="task-list"></div>
+    </div>
+    <div class="column" id="col-completed">
+      <div class="column-header"><span>完了</span> <span class="count">0</span></div>
+      <div class="task-list"></div>
+    </div>
+  </div>
 </div>
 
 <script>
-async function addData() {
-  const data = {
-    date: document.querySelector('[name="date"]').value,
-    person: document.querySelector('[name="person"]').value,
-    place: document.querySelector('[name="place"]').value,
-    status: document.querySelector('[name="status"]').value,
-    comment: document.querySelector('[name="comment"]').value
+  let allTasks = [];
+  let currentFilter = 'all';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // 今日の日付をセット
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('formDate').value = today;
+
+    loadTasks();
+  });
+
+  document.getElementById('taskForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+
+    await fetch('/add', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+
+    e.target.reset();
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('formDate').value = today;
+    loadTasks();
   };
 
-  await fetch("/add", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(data)
-  });
+  async function loadTasks() {
+    const res = await fetch('/list');
+    allTasks = await res.json();
+    renderBoard();
+  }
 
-  loadList();
-}
+  function setFilter(filter, el) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderBoard();
+  }
 
-async function assign(index) {
-  const name = prompt("担当者名");
-  if (!name) return;
+  function renderBoard() {
+    const columns = {
+      'Not Started': document.querySelector('#col-not-started .task-list'),
+      'In Progress': document.querySelector('#col-in-progress .task-list'),
+      'Completed': document.querySelector('#col-completed .task-list')
+    };
 
-  await fetch("/assign", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ index, assignee: name })
-  });
+    // クリア
+    Object.values(columns).forEach(c => c.innerHTML = '');
 
-  loadList();
-}
+    // フィルタリング
+    let filtered = allTasks.map((t, i) => ({...t, originalIndex: i}));
 
-async function done(index) {
-  await fetch("/done", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ index })
-  });
+    if (currentFilter === 'incomplete') {
+      filtered = filtered.filter(t => t.status !== 'Completed');
+    } else if (currentFilter === 'overdue') {
+      const today = new Date().toISOString().split('T')[0];
+      filtered = filtered.filter(t => t.status !== 'Completed' && t.dueDate < today);
+    }
 
-  loadList();
-}
+    // 日付でグループ化してレンダリング
+    const today = new Date().toISOString().split('T')[0];
 
-async function loadList() {
-  const res = await fetch("/list");
-  const list = await res.json();
+    ['Not Started', 'In Progress', 'Completed'].forEach(status => {
+      const statusTasks = filtered.filter(t => t.status === status);
+      document.querySelector(`#col-${status.toLowerCase().replace(' ', '-') } .count`).innerText = statusTasks.length;
 
-  const area = document.getElementById("list");
-  area.innerHTML = "";
+      // 日付順（新しい順）
+      const grouped = {};
+      statusTasks.forEach(t => {
+        if (!grouped[t.date]) grouped[t.date] = [];
+        grouped[t.date].push(t);
+      });
 
-  list.forEach((item, index) => {
+      const sortedDates = Object.keys(grouped).sort().reverse();
 
-    let statusClass = "";
-    if (item.status === "○") statusClass = "status-ok";
-    if (item.status === "△") statusClass = "status-mid";
-    if (item.status === "×") statusClass = "status-ng";
+      sortedDates.forEach(date => {
+        const dateGroup = document.createElement('div');
+        dateGroup.className = 'date-group';
+        dateGroup.innerHTML = `<div class="date-header">${date}</div>`;
 
-    const div = document.createElement("div");
-    div.className = "card " + (item.done ? "done" : "");
+        grouped[date].forEach(task => {
+          const isOverdue = task.status !== 'Completed' && task.dueDate < today;
+          const card = document.createElement('div');
+          card.className = `task-card status-${task.status.toLowerCase().replace(' ', '-') } ${isOverdue ? 'overdue' : ''}`;
+          card.onclick = (e) => {
+            if (e.target.tagName !== 'BUTTON') cycleStatus(task.originalIndex, task.status);
+          };
 
-    div.innerHTML = `
-      <p><b>${item.date}</b> / ${item.person}</p>
-      <p>${item.place} / <span class="${statusClass}">${item.status}</span></p>
-      <p>${item.comment}</p>
-      <p>担当者: ${item.assignee || "未設定"}</p>
+          const delBtn = document.createElement('button');
+          delBtn.className = 'delete-btn';
+          delBtn.innerHTML = '&times;';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteTask(task.originalIndex);
+          };
 
-      <button class="btn-sub" onclick="assign(${index})">担当者</button>
-      <button class="btn-done" onclick="done(${index})">対応済み</button>
-    `;
+          const commentP = document.createElement('p');
+          commentP.className = 'task-comment';
+          commentP.textContent = task.comment;
 
-    area.appendChild(div);
-  });
-}
+          const infoP = document.createElement('p');
+          infoP.className = 'task-info';
+          infoP.textContent = `📍 ${task.location}`;
 
-window.onload = loadList;
+          const metaDiv = document.createElement('div');
+          metaDiv.className = 'task-meta';
+
+          const assigneeSpan = document.createElement('span');
+          assigneeSpan.className = 'task-assignee';
+          assigneeSpan.textContent = `👤 ${task.assignee}`;
+
+          const dueSpan = document.createElement('span');
+          dueSpan.className = 'task-due';
+          dueSpan.textContent = `📅 ${task.dueDate}`;
+
+          metaDiv.appendChild(assigneeSpan);
+          metaDiv.appendChild(dueSpan);
+
+          card.appendChild(delBtn);
+          card.appendChild(commentP);
+          card.appendChild(infoP);
+          card.appendChild(metaDiv);
+
+          dateGroup.appendChild(card);
+        });
+        columns[status].appendChild(dateGroup);
+      });
+    });
+  }
+
+  async function cycleStatus(index, currentStatus) {
+    const states = ['Not Started', 'In Progress', 'Completed'];
+    const nextStatus = states[(states.indexOf(currentStatus) + 1) % states.length];
+
+    await fetch('/update', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ index, task: { status: nextStatus } })
+    });
+    loadTasks();
+  }
+
+  async function deleteTask(index) {
+    if (!confirm('このタスクを削除しますか？')) return;
+
+    await fetch('/delete', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ index })
+    });
+    loadTasks();
+  }
 </script>
 
 </body>
