@@ -134,6 +134,7 @@
       border-bottom: 2px solid #ddd;
       display: flex;
       justify-content: space-between;
+      cursor: pointer;
     }
 
     .date-group {
@@ -200,6 +201,11 @@
 
     .overdue .task-due {
       font-weight: bold;
+    }
+
+    .task-card.overdue {
+      background-color: #fff5f5;
+      border: 1px solid #feb2b2;
     }
 
     .delete-btn {
@@ -277,6 +283,17 @@
     <button class="filter-btn" onclick="setFilter('overdue', this)">期限切れ</button>
   </div>
 
+  <div class="form-card" id="dashboardSection">
+    <h2>月間サマリー</h2>
+    <div class="form-group" style="max-width: 200px; margin-bottom: 1rem;">
+      <label>対象月選択</label>
+      <input type="month" id="summaryMonth" onchange="renderDashboard()">
+    </div>
+    <div id="dashboardContent">
+      <p style="color: #636e72;">月を選択するとサマリーが表示されます</p>
+    </div>
+  </div>
+
   <div class="board">
     <div class="column" id="col-not-started">
       <div class="column-header"><span>未着手</span> <span class="count">0</span></div>
@@ -287,8 +304,8 @@
       <div class="task-list"></div>
     </div>
     <div class="column" id="col-completed">
-      <div class="column-header"><span>完了</span> <span class="count">0</span></div>
-      <div class="task-list"></div>
+      <div class="column-header" onclick="toggleCompleted()"><span>完了 (クリックで開閉)</span> <span class="count">0</span></div>
+      <div class="task-list" id="completedList"></div>
     </div>
   </div>
 </div>
@@ -326,6 +343,12 @@
     const res = await fetch('/list');
     allTasks = await res.json();
     renderBoard();
+    renderDashboard();
+  }
+
+  function toggleCompleted() {
+    const list = document.getElementById('completedList');
+    list.style.display = (list.style.display === 'none') ? 'block' : 'none';
   }
 
   function setFilter(filter, el) {
@@ -355,14 +378,27 @@
       filtered = filtered.filter(t => t.status !== 'Completed' && t.dueDate < today);
     }
 
+    // ソート: 未完了優先、期限が早い順
+    filtered.sort((a, b) => {
+      if (a.status === 'Completed' && b.status !== 'Completed') return 1;
+      if (a.status !== 'Completed' && b.status === 'Completed') return -1;
+      return a.dueDate.localeCompare(b.dueDate);
+    });
+
     // 日付でグループ化してレンダリング
     const today = new Date().toISOString().split('T')[0];
 
     ['Not Started', 'In Progress', 'Completed'].forEach(status => {
       const statusTasks = filtered.filter(t => t.status === status);
+      const columnEl = document.querySelector(`#col-${status.toLowerCase().replace(' ', '-') } .task-list`);
       document.querySelector(`#col-${status.toLowerCase().replace(' ', '-') } .count`).innerText = statusTasks.length;
 
-      // 日付順（新しい順）
+      if (statusTasks.length === 0) {
+        columnEl.innerHTML = '<p style="text-align: center; color: #b2bec3; padding: 1rem; font-size: 0.9rem;">タスクはありません</p>';
+        return;
+      }
+
+      // 日付順（新しい順）のグループ化を維持しつつ、グループ内でのソートを反映
       const grouped = {};
       statusTasks.forEach(t => {
         if (!grouped[t.date]) grouped[t.date] = [];
@@ -447,6 +483,42 @@
       body: JSON.stringify({ index })
     });
     loadTasks();
+  }
+
+  function renderDashboard() {
+    const month = document.getElementById('summaryMonth').value;
+    const container = document.getElementById('dashboardContent');
+    if (!month) return;
+
+    const filtered = allTasks.filter(t => t.date.startsWith(month));
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<p style="color: #636e72;">${month}のデータはありません</p>`;
+      return;
+    }
+
+    const summary = {}; // { location: { status: count } }
+    filtered.forEach(t => {
+      if (!summary[t.location]) {
+        summary[t.location] = { 'Not Started': 0, 'In Progress': 0, 'Completed': 0 };
+      }
+      summary[t.location][t.status]++;
+    });
+
+    let html = '<table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">';
+    html += '<tr style="background: #f8f9fa;"><th style="text-align: left; padding: 8px; border: 1px solid #ddd;">場所</th><th style="padding: 8px; border: 1px solid #ddd;">未着手</th><th style="padding: 8px; border: 1px solid #ddd;">進行中</th><th style="padding: 8px; border: 1px solid #ddd;">完了</th></tr>';
+
+    Object.keys(summary).sort().forEach(loc => {
+      const s = summary[loc];
+      html += `<tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">${loc}</td>
+        <td style="text-align: center; padding: 8px; border: 1px solid #ddd;">${s['Not Started']}</td>
+        <td style="text-align: center; padding: 8px; border: 1px solid #ddd;">${s['In Progress']}</td>
+        <td style="text-align: center; padding: 8px; border: 1px solid #ddd;">${s['Completed']}</td>
+      </tr>`;
+    });
+    html += '</table>';
+    container.innerHTML = html;
   }
 </script>
 
